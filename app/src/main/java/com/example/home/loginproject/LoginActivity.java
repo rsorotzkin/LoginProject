@@ -15,6 +15,16 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -29,11 +39,16 @@ public class LoginActivity extends AppCompatActivity {
     TextView _signupLink;
 
 
+    //public static final String KEY_USERNAME = "username";
+    public static final String KEY_PASSWORD = "password_param";
+    public static final String KEY_EMAIL = "email_param";
+
+
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-
         initializeViews();
         registerListeners();
 
@@ -45,7 +60,6 @@ public class LoginActivity extends AppCompatActivity {
         _passwordText = (EditText) findViewById(R.id.input_password);
         _loginButton = (Button) findViewById(R.id.btn_login);
         _signupLink = (TextView) findViewById(R.id.link_signup);
-
 
 
     }
@@ -90,10 +104,11 @@ public class LoginActivity extends AppCompatActivity {
         progressDialog.setMessage("Authenticating...");
         progressDialog.show();
 
-        String email = _emailText.getText().toString();
-        String password = _passwordText.getText().toString();
+        String email = _emailText.getText().toString().trim();
+        String password = _passwordText.getText().toString().trim();
 
         // TODO: Implement your own authentication logic here.
+        registerUser(email, password);
 
         new android.os.Handler().postDelayed(
                 new Runnable() {
@@ -157,5 +172,38 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         return valid;
+    }
+
+
+    private void registerUser(final String email, final String password){
+        //final String username = _emailText.getText().toString().trim();
+        String REGISTER_URL = "http://162.243.100.186/login_request.php";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, REGISTER_URL,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Toast.makeText(getApplicationContext(),response,Toast.LENGTH_LONG).show();
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(getApplicationContext(),error.toString(),Toast.LENGTH_LONG).show();
+                    }
+                }){
+            @Override
+            protected Map<String,String> getParams(){
+                Map<String,String> params = new HashMap<String, String>();
+//                params.put(KEY_USERNAME,username);
+                params.put(KEY_PASSWORD,password);
+                params.put(KEY_EMAIL, email);
+                return params;
+            }
+
+        };
+
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        requestQueue.add(stringRequest);
     }
 }
