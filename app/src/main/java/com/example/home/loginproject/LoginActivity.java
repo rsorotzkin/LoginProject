@@ -10,53 +10,38 @@ import android.util.Log;
 
 import android.content.Intent;
 import android.view.View;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.OnClick;
-import butterknife.Optional;
-
 public class LoginActivity extends AppCompatActivity {
+    DatabaseOperations databaseOperations;
     private static final String TAG = "LoginActivity";
     private static final int REQUEST_SIGNUP = 0;
 
-    EditText _emailText, _passwordText;
+    EditText _passwordText;
     Button _loginButton;
     TextView _signupLink;
+    AutoCompleteTextView _emailText;
 
-
-    //public static final String KEY_USERNAME = "username";
-    public static final String KEY_PASSWORD = "password_param";
-    public static final String KEY_EMAIL = "email_param";
-
-
+    String email, password;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        // send activity reference to Util class
+        Util.setReference(this);
         initializeViews();
         registerListeners();
-
 
     }
 
     public void initializeViews() {
-        _emailText = (EditText) findViewById(R.id.input_email);
+        databaseOperations = new DatabaseOperations();
+        _emailText = (AutoCompleteTextView) findViewById(R.id.input_email);
         _passwordText = (EditText) findViewById(R.id.input_password);
         _loginButton = (Button) findViewById(R.id.btn_login);
         _signupLink = (TextView) findViewById(R.id.link_signup);
@@ -86,39 +71,13 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-
-
     public void login() {
-        Log.d(TAG, "Login");
-
-        if (!validate()) {
-            onLoginFailed();
-            return;
+        // if email or password are valid
+        if (validate()) {
+            registerUser(email, password);
         }
 
-        _loginButton.setEnabled(false);
 
-        final ProgressDialog progressDialog = new ProgressDialog(LoginActivity.this,
-                R.style.AppTheme_Dark_Dialog);
-        progressDialog.setIndeterminate(true);
-        progressDialog.setMessage("Authenticating...");
-        progressDialog.show();
-
-        String email = _emailText.getText().toString().trim();
-        String password = _passwordText.getText().toString().trim();
-
-        // TODO: Implement your own authentication logic here.
-        registerUser(email, password);
-
-        new android.os.Handler().postDelayed(
-                new Runnable() {
-                    public void run() {
-                        // On complete call either onLoginSuccess or onLoginFailed
-                        onLoginSuccess();
-                        // onLoginFailed();
-                        progressDialog.dismiss();
-                    }
-                }, 3000);
     }
 
 
@@ -145,20 +104,16 @@ public class LoginActivity extends AppCompatActivity {
         finish();
     }
 
-    public void onLoginFailed() {
-        Toast.makeText(getBaseContext(), "Login failed", Toast.LENGTH_LONG).show();
-
-        _loginButton.setEnabled(true);
-    }
 
     public boolean validate() {
         boolean valid = true;
 
-        String email = _emailText.getText().toString();
-        String password = _passwordText.getText().toString();
+        email = _emailText.getText().toString();
+        password = _passwordText.getText().toString();
 
         if (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             _emailText.setError("enter a valid email address");
+            Toast.makeText(Util.getContext(),"email not valid",Toast.LENGTH_LONG).show();
             valid = false;
         } else {
             _emailText.setError(null);
@@ -166,6 +121,7 @@ public class LoginActivity extends AppCompatActivity {
 
         if (password.isEmpty() || password.length() < 4 || password.length() > 10) {
             _passwordText.setError("between 4 and 10 alphanumeric characters");
+            Toast.makeText(Util.getContext(),"password not valid",Toast.LENGTH_LONG).show();
             valid = false;
         } else {
             _passwordText.setError(null);
@@ -174,36 +130,40 @@ public class LoginActivity extends AppCompatActivity {
         return valid;
     }
 
+    /**
+     * Function to run a query in database
+     */
+    public void registerUser(String email, String password) {
+            // call makeJsonArrayRequest and send url, tag, errorTextView and instantiate a callBack
+            databaseOperations.postSearch("http://162.243.100.186/login_request.php", email, password,
+                    new DatabaseOperations.VolleyCallback() {
+                        @Override
+                        public void onSuccessResponse(String result) {
+                            // if result contains "sqlError" - query didn't run
+                            if (result.contains("sqlError")) {
+                                Toast.makeText(Util.getContext(),"a sql error occurred", Toast.LENGTH_LONG).show();
+                               // setTextOfErrorTextView(getResources().getString(R.string.sql_error));
+                            }
+                            // if query ran
+                            else {
+                                // if query returned no results
+                                if (result.contains("noUserFound")) {
+                                   // setTextOfErrorTextView(getResources().getString(R.string.no_matches));
+                                    Toast.makeText(Util.getContext(),"no user found", Toast.LENGTH_LONG).show();
+                                }
+                                // if query is missing required fields param
+                                else if (result.contains("noFields")) {
+                                    //setTextOfErrorTextView(getResources().getString(R.string.search_empty));
+                                    Toast.makeText(Util.getContext(),"missing required fields", Toast.LENGTH_LONG).show();
+                                }
+                                // if query returned results
+                                else {
+                                // dismiss dialog and log user in
+                                    Toast.makeText(Util.getContext(),"Login success", Toast.LENGTH_LONG).show();
+                                }
+                            }
+                        }
 
-    private void registerUser(final String email, final String password){
-        //final String username = _emailText.getText().toString().trim();
-        String REGISTER_URL = "http://162.243.100.186/login_request.php";
-
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, REGISTER_URL,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        Toast.makeText(getApplicationContext(),response,Toast.LENGTH_LONG).show();
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Toast.makeText(getApplicationContext(),error.toString(),Toast.LENGTH_LONG).show();
-                    }
-                }){
-            @Override
-            protected Map<String,String> getParams(){
-                Map<String,String> params = new HashMap<String, String>();
-//                params.put(KEY_USERNAME,username);
-                params.put(KEY_PASSWORD,password);
-                params.put(KEY_EMAIL, email);
-                return params;
-            }
-
-        };
-
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-        requestQueue.add(stringRequest);
+                    });
+        }
     }
-}
