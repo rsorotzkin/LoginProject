@@ -135,7 +135,7 @@ public class LoginActivity extends AppCompatActivity {
      */
     public void registerUser(String email, String password) {
             // call makeJsonArrayRequest and send url, tag, errorTextView and instantiate a callBack
-            databaseOperations.postSearch("http://162.243.100.186/login_request.php", email, password,
+            databaseOperations.postSearch("http://162.243.100.186/login_request.php", null, email, password,
                     new DatabaseOperations.VolleyCallback() {
                         @Override
                         public void onSuccessResponse(String result) {

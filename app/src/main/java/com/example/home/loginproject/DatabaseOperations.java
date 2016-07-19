@@ -20,14 +20,14 @@ import java.util.Map;
 public class DatabaseOperations {
     // Declare controls
     ProgressDialog pDialog;
-    //public static final String KEY_USERNAME = "username";
+    public static final String KEY_NAME = "name_param";
     public static final String KEY_PASSWORD = "password_param";
     public static final String KEY_EMAIL = "email_param";
     /**
      * Method to make post a string request to the server
      */
-    public void postSearch(String url, final String emailParam, final String passwordParam,
-                        final VolleyCallback callback) {
+    public void postSearch(String url, final String nameParam, final String emailParam,
+                           final String passwordParam, final VolleyCallback callback) {
 
 
         if (pDialog == null) {
@@ -49,7 +49,8 @@ public class DatabaseOperations {
                     @Override
                     public void onErrorResponse(VolleyError error) {
 
-                        Toast.makeText(Util.getContext(), "Data not available at the moment. Please check your internet connection", Toast.LENGTH_LONG).show();
+                        Toast.makeText(Util.getContext(), "Data not available at the moment. " +
+                                "Please check your internet connection", Toast.LENGTH_LONG).show();
                         pDialog.hide();
                     }
                 }) {
@@ -57,6 +58,8 @@ public class DatabaseOperations {
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<String, String>();
+                if (nameParam != null)
+                params.put(KEY_NAME, nameParam);
                 params.put(KEY_EMAIL, emailParam);
                 params.put(KEY_PASSWORD, passwordParam);
                 return params;
